@@ -1,0 +1,61 @@
+version: '3.9'
+services:
+  mongodb:
+    image: mongo:4
+    container_name: mongodb
+    ports:
+      - "17017:27017"
+    restart: always
+    networks:
+      - devapp-net
+    deploy:
+      replicas: 1 
+      placement:
+        constraints: [node.role != manager ]
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+
+  frontend:
+    image: kva231/frontend:6.0
+    container_name: frontend
+    ports:
+      - "3000:8000"
+    restart: always
+    networks:
+      - devapp-net
+    environment:
+      - PORT=8000
+      - DAILYLOG_API_ADDR=backend:8000
+    deploy:
+      replicas: 4
+      placement:
+        constraints: [node.role != manager ]
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+    depends_on:
+      - backend
+
+  backend:
+    image: kva231/backend:6.0
+    container_name: backend
+    restart: always
+    networks:
+      - devapp-net
+    environment:
+      - PORT=8000
+      - DAILYLOG_DB_ADDR=mongodb:27017
+    deploy:
+      replicas: 4
+      placement:
+        constraints: [node.role != manager ]
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+    depends_on:
+      - mongodb
+
+networks:
+  devapp-net:
+    external: true
