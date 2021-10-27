@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: dailylog
+  labels:
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      tier: backend
+  template:
+    metadata:
+      name: back-pod
+      labels:
+        tier: backend
+    spec:
+      containers:
+      - name: backend-container
+        image: yk1700/team3-back:2.0
+        ports:
+        - containerPort: 8000
+        env: 
+        - name: DAILYLOG_DB_ADDR
+          value: root:k8spass#@eks-fargate-docdb.cluster-cuku23osgovb.us-west-2.docdb.amazonaws.com:27017
+        - name: DAILYLOG_DB_ADDR_QUERYSTRING
+          value: ?ssl=true&ssl_ca_certs=rds-combined-ca-bundle.pem&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: dailylog
+spec:
+  selector:
+    tier: backend
+  ports:
+  - port: 8000
+    targetPort: 8000
