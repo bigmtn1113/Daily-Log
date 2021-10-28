@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: frontend-container
-        image: kva231/frontend:6.0
+        image: kva231/dailylog-frontend:1.0
         ports:
         - containerPort: 8000
         env:
