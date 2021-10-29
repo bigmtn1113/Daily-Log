@@ -1,0 +1,24 @@
+- const today = new Date();
+- const year = today.getFullYear();
+- const month = ("0" + (today.getMonth() + 1)).slice(-2);
+- const day = ("0" + today.getDate()).slice(-2);
+
+form(action="/post", method="POST")
+    label.sr-only(for="date") Date
+    .input-group.mb-2.mr-sm-2.col-4
+        .input-group-prepend
+            .input-group-text &nbsp;&nbsp;&nbsp;Date&nbsp;&nbsp;&nbsp;
+        input#date.form-control(type="text", name="date", value=`${year}.${month}.${day}` readonly="")
+    label.sr-only(for="title") Title
+    .input-group.mb-2.mr-sm-2.col-12
+        .input-group-prepend
+            .input-group-text &nbsp;&nbsp;&nbsp;Title&nbsp;&nbsp;&nbsp;
+        input#title.form-control(type="text", name="title", required="")
+    label.sr-only(for="content") Content
+    .input-group.mb-2.mr-sm-2.col-12
+        .input-group-prepend
+            .input-group-text Content
+        textarea#content.form-control(name="content", required="", rows="6", cols="30", style={resize: "none"})
+    button.btn.mb-2(type="submit") Done
+    br
+    br
