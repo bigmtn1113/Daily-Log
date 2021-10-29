@@ -1,0 +1,25 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "backend",
+  "main": "app.js",
+  "scripts": {
+    "start": "node --inspect=9229 app.js"
+  },
+  "author": "Google Inc.",
+  "license": "0BSD",
+  "devDependencies": {
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4",
+    "mongodb": "^3.2.2",
+    "mongoose": "^5.4.20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ahnyoonki/dockerProject.git"
+  },
+  "dependencies": {
+    "axios": "^0.24.0",
+    "moment": "^2.29.1"
+  }
+}
