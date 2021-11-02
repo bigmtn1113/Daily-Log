@@ -68,9 +68,9 @@ Parameters:
     Default: '2'
     Description: The initial number of WebServer instances
     Type: Number
-    MinValue: '1'
+    MinValue: '2'
     MaxValue: '5'
-    ConstraintDescription: must be between 1 and 5 EC2 instances.
+    ConstraintDescription: must be between 2 and 5 EC2 instances.
 
   CPUPolicyTargetValue:
     Description: The target value for the metric
@@ -230,7 +230,7 @@ Resources:
         !Ref PrivateSubnets
       LaunchConfigurationName:
         !Ref LaunchConfig
-      MinSize: '1'
+      MinSize: '2'
       MaxSize: '5'
       DesiredCapacity:
         !Ref WebServerCapacity
