@@ -142,6 +142,20 @@ Resources:
       DBInstanceClass: !Ref DBInstanceClass
     DependsOn: DBCluster
 
+  MasterUsernameParameterStore:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: MasterUsername
+      Type: "String"
+      Value: !Ref MasterUsername
+
+  MasterUserPasswordParameterStore:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: MasterUserPassword
+      Type: "String"
+      Value: !Ref MasterUserPassword
+
 ######################
 # Outputs section
 ######################
@@ -150,8 +164,12 @@ Outputs:
     Value: !Ref DBCluster
   ClusterEndpoint:
     Value: !GetAtt DBCluster.Endpoint
+    Export:
+      Name: !Sub '${AWS::StackName}-DBClusterEndpoint'
   ClusterPort:
     Value: !GetAtt DBCluster.Port
+    Export:
+      Name: !Sub '${AWS::StackName}-DBClusterPort'
   EngineVersion:
     Value: "4.0.0"
   SubnetGroup:
