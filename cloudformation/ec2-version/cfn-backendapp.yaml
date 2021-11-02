@@ -310,11 +310,9 @@ Resources:
           source /etc/profile
           cd /home/ec2-user/back/
           /usr/bin/pm2 start ecosystem.config.js
-          /opt/aws/bin/cfn-signal -e $? --stack ${stackname} --resource AppServerGroup --region ${region}
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AppServerGroup --region ${AWS::Region}
         - DBADDR: !Ref DBAddr
           DBADDRQUERYSTRING: !Ref DBAddrQuerystring
-          stackname: !Ref "AWS::StackName"
-          region: !Ref "AWS::Region"
 
 ######################
 # Outputs section
