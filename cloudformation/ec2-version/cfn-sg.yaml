@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Application Template: Demonstrates how to reference resources from a different stack.
+  This template provisions an EC2 instance in a VPC Subnet provisioned in a different stack.
+
+######################
+# Parameters section
+######################
+Parameters:
+
+  NetworkStackName:
+    Description: >-
+      Name of an active CloudFormation stack that contains the networking
+      resources, such as the VPC and subnet that will be used in this stack.
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
+    Default: cfn-vpc
+
+Resources:
+  # Security Group config
+  extALBSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: allow 80
+      GroupName: extalbsg
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      VpcId: 
+        Fn::ImportValue:
+          !Sub ${NetworkStackName}-VPCID
+
+  WebServerSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable HTTP access via port 8000 locked down to the ELB
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '8000'
+          ToPort: '8000'
+          SourceSecurityGroupId: !Ref extALBSecurityGroup
+      VpcId:
+        Fn::ImportValue:
+          !Sub ${NetworkStackName}-VPCID
+  
+  intALBSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: allow tcp 80
+      GroupName: intalbsg
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref WebServerSecurityGroup
+      VpcId: 
+        Fn::ImportValue:
+          !Sub ${NetworkStackName}-VPCID	  
+
+  AppServerSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable HTTP access via port 8000 locked down to the ELB
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '8000'
+          ToPort: '8000'
+          SourceSecurityGroupId: !Ref intALBSecurityGroup
+      VpcId:
+        Fn::ImportValue:
+          !Sub ${NetworkStackName}-VPCID
+
+######################
+# Outputs section
+######################
+Outputs:
+  extALBSecurityGroup:
+    Description: The security group ID to use for External ALB
+    Value:
+      'Fn::GetAtt':
+        - extALBSecurityGroup
+        - GroupId
+    Export:
+      Name:
+        'Fn::Sub': '${AWS::StackName}-extALBSecurityGroupID'
+
+  WebServerSecurityGroup:
+    Description: The security group ID to use for web servers
+    Value:
+      'Fn::GetAtt':
+        - WebServerSecurityGroup
+        - GroupId
+    Export:
+      Name:
+        'Fn::Sub': '${AWS::StackName}-WebServerSecurityGroupID'
+
+  intALBSecurityGroup:
+    Description: The security group ID to use for internal ALB
+    Value:
+      'Fn::GetAtt':
+        - intALBSecurityGroup
+        - GroupId
+    Export:
+      Name:
+        'Fn::Sub': '${AWS::StackName}-intALBSecurityGroupID'
+
+  AppServerSecurityGroup:
+    Description: The security group ID to use for Application servers
+    Value:
+      'Fn::GetAtt':
+        - AppServerSecurityGroup
+        - GroupId
+    Export:
+      Name:
+        'Fn::Sub': '${AWS::StackName}-AppServerSecurityGroupID'
