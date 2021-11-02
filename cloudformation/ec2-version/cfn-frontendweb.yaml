@@ -294,12 +294,10 @@ Resources:
           source /etc/profile
           cd /home/ec2-user/front/
           /usr/bin/pm2 start ecosystem.config.js
-          /opt/aws/bin/cfn-signal -e $? --stack ${stackname} --resource WebServerGroup --region ${region}
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WebServerGroup --region ${AWS::Region}
         - intALB:
             Fn::ImportValue:
               !Sub "${ALBStackName}-intURL"
-          stackname: !Ref "AWS::StackName"
-          region: !Ref "AWS::Region"
 
 ######################
 # Outputs section
