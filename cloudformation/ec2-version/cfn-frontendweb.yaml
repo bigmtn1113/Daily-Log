@@ -1,7 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  Application Template: Demonstrates how to reference resources from a different stack.
-  This template provisions an EC2 instance in a VPC Subnet provisioned in a different stack.
+  This template provisions an Auto Scaling Group in a VPC Subnet provisioned in a different stack.
 
 ######################
 # Resource Config Step
@@ -252,17 +251,17 @@ Resources:
           PredefinedMetricType: ASGAverageCPUUtilization
         TargetValue: !Ref CPUPolicyTargetValue
 
-    CreationPolicy:
-      ResourceSignal:
-        Timeout: PT5M
-        Count:
-          !Ref WebServerCapacity
-    UpdatePolicy:
-      AutoScalingRollingUpdate:
-        MinInstancesInService: '1'
-        MaxBatchSize: '1'
-        PauseTime: PT15M
-        WaitOnResourceSignals: 'true'
+  CreationPolicy:
+    ResourceSignal:
+      Timeout: PT5M
+      Count:
+        !Ref WebServerCapacity
+  UpdatePolicy:
+    AutoScalingRollingUpdate:
+      MinInstancesInService: '1'
+      MaxBatchSize: '1'
+      PauseTime: PT15M
+      WaitOnResourceSignals: 'true'
 
 # LaunchConfig Session
   LaunchConfig:
