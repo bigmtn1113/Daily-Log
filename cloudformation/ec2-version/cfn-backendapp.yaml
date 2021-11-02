@@ -46,6 +46,16 @@ Parameters:
     AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
     Default: cfn-alb
 
+  DocDBStackName:
+    Description: >-
+      Name of an active CloudFormation stack that contains the networking
+      resources, such as the DocumentDB that will be used in this stack.
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
+    Default: cfn-documentdb
+
   SSMMgmtRoleName:
     Description: Name of IAM Role
     Type: 'String'
@@ -64,9 +74,9 @@ Parameters:
     Default: '2'
     Description: The initial number of AppServer instances
     Type: Number
-    MinValue: '1'
+    MinValue: '2'
     MaxValue: '5'
-    ConstraintDescription: must be between 1 and 5 EC2 instances.
+    ConstraintDescription: must be between 2 and 5 EC2 instances.
 
   CPUPolicyTargetValue:
     Description: The target value for the metric
@@ -91,15 +101,6 @@ Parameters:
       - c4.2xlarge
     ConstraintDescription: must be a valid EC2 instance type.
 
-  DBAddr:
-    Description: >-
-      Name of an active CloudFormation stack that contains the networking
-      resources, such as the DB Address that will be used in this stack.
-    Type: String
-    MinLength: 1
-    MaxLength: 255
-    AllowedPattern: ".*"
-
   DBAddrQuerystring :
     Description: >-
       Name of an active CloudFormation stack that contains the networking
@@ -109,6 +110,14 @@ Parameters:
     MaxLength: 255
     AllowedPattern : ".*"
     Default: \"?ssl=true&ssl_ca_certs=rds-combined-ca-bundle.pem&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false\"
+
+  MasterUsernameParameterStore:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: "Amazon DocumentDB Master Username"
+
+  MasterUserPasswordParameterStore:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: "Amazon DocumentDB Master User Password"
 
 ######################
 # Mapping section
@@ -245,7 +254,7 @@ Resources:
         !Ref PrivateSubnets
       LaunchConfigurationName:
         !Ref LaunchConfig
-      MinSize: '1'
+      MinSize: '2'
       MaxSize: '5'
       DesiredCapacity:
         !Ref AppServerCapacity
@@ -311,7 +320,18 @@ Resources:
           cd /home/ec2-user/back/
           /usr/bin/pm2 start ecosystem.config.js
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AppServerGroup --region ${AWS::Region}
-        - DBADDR: !Ref DBAddr
+        - DBADDR:
+            Fn::Join:
+              - ''
+              - - !Ref MasterUsernameParameterStore
+                - ':'
+                - !Ref MasterUserPasswordParameterStore
+                - '@'
+                - Fn::ImportValue:
+                    !Sub "${DocDBStackName}-DBClusterEndpoint"
+                - ':'
+                - Fn::ImportValue:
+                    !Sub "${DocDBStackName}-DBClusterPort"
           DBADDRQUERYSTRING: !Ref DBAddrQuerystring
 
 ######################
