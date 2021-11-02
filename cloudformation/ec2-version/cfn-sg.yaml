@@ -1,13 +1,11 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  Application Template: Demonstrates how to reference resources from a different stack.
-  This template provisions an EC2 instance in a VPC Subnet provisioned in a different stack.
+  This template provisions Security Groups in a VPC provisioned in a different stack.
 
 ######################
 # Parameters section
 ######################
 Parameters:
-
   NetworkStackName:
     Description: >-
       Name of an active CloudFormation stack that contains the networking
