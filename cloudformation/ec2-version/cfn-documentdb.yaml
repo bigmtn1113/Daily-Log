@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  AWS CloudFormation Template CFN-DocDB: Create a highly available,
-  Amazon DocDB instance for the backend data store.
+  AWS CloudFormation Template cfn-documentdb: Create a highly available,
+  Amazon DocumentDB instance for the backend data store.
 
 ######################
 # Resource Config Step
@@ -142,6 +142,7 @@ Resources:
       DBInstanceClass: !Ref DBInstanceClass
     DependsOn: DBCluster
 
+  ### Parameter Store
   MasterUsernameParameterStore:
     Type: "AWS::SSM::Parameter"
     Properties:
