@@ -8,7 +8,7 @@
 ### Region
 아시아 태평양 (서울)  ap-northeast-2
 
-### 이후 작업
+### yaml 파일들 실행 이후 작업
 1. aws eks --region us-west-2 update-kubeconfig --name ControlPlane --region ap-northeast-2
 
 2. kubectl patch deployment coredns -n kube-system --type json -p='[{"op": "remove", "path": "/spec/template/metadata/annotations/eks.amazonaws.com~1compute-type"}]'
