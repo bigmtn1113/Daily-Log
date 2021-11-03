@@ -9,3 +9,8 @@
 
 ### Region
 아시아 태평양 (서울)  ap-northeast-2
+
+### AMI
+#### Linux AMI(Amazon Linux 2 AMI (HVM), SSD Volume Type - ami-04e8dfc09b22389ad)에 추가 작업 진행
+- git 설치 및 application-ec2 git clone
+- nodejs 및 pm2 설치
