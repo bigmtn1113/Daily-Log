@@ -1,0 +1,14 @@
+if messages.length > 0
+    for msg in messages
+        .card.my-3.col-12
+            .card-body
+                h5.card-title #{msg.title}
+                h6.card-subtitle.mb-2.text-muted  #{msg.date}
+                br
+                br
+                pre.card-text #{msg.content}
+                br
+
+else
+    p.alert.alert-empty(role='alert')
+        | It's empty. Fill in your first Daily Log.
