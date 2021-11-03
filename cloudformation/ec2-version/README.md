@@ -8,4 +8,4 @@
 5. **cfn-frontendweb.yaml, cfn-backendapp.yaml**
 
 ### Region
-아시아 태평양 (서울)ap-northeast-2
+아시아 태평양 (서울)  ap-northeast-2
