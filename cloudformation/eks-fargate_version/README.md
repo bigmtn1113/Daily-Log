@@ -44,5 +44,15 @@
    kubectl apply -f frontend-hpa.yaml  
    kubectl apply -f backend-hpa.yaml
 
+### HPA Autoscaling Test
+```bash
+kubectl run hi --image nginx -n dailylog
+kubectl exec -it hi -n dailylog -- bash
+
+apt-get update
+apt-get install -y wget
+$ while true; do wget -q -O- k8s-dailylog-dailylog-91f9e6f638-1609459059.ap-northeast-2.elb.amazonaws.com; done     # ALB DNS 주소로 반복 접근
+```
+
 ### 참고
 - https://aws.amazon.com/ko/premiumsupport/knowledge-center/eks-alb-ingress-controller-fargate/
