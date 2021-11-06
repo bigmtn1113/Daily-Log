@@ -18,7 +18,7 @@
    cd eks-fargate-docdb
 
 4. kubectl create ns dailylog  
-   kubectl apply -f backend.yaml  
+   kubectl apply -f backend.yaml       **#### DB 접속 URI 수정 후, apply 진행**  
    kubectl apply -f frontend.yaml
 
 5. eksctl utils associate-iam-oidc-provider --cluster ControlPlane --approve --region ap-northeast-2
