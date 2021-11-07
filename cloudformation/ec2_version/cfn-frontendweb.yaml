@@ -156,7 +156,7 @@ Mappings:
       HVM64: ami-0b2c2a754d5b4da22
       HVMG2: ami-09d0e0e099ecabba2
     ap-northeast-2:
-      HVM64: ami-09c1616fe3a925bde
+      HVM64: ami-0b2a308a7344a236d
       HVMG2: NOT_SUPPORTED
     ap-northeast-3:
       HVM64: ami-01344f6f63a4decc1
