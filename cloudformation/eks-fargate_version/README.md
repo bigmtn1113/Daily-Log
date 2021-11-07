@@ -9,7 +9,7 @@
 아시아 태평양 (서울)  ap-northeast-2
 
 ### yaml 파일들 실행 이후 작업
-1. aws eks --region us-west-2 update-kubeconfig --name ControlPlane --region ap-northeast-2
+1. aws eks --region ap-northeast-2 update-kubeconfig --name ControlPlane
 
 2. kubectl patch deployment coredns -n kube-system --type json -p='[{"op": "remove", "path": "/spec/template/metadata/annotations/eks.amazonaws.com~1compute-type"}]'
 
@@ -18,7 +18,7 @@
    cd eks-fargate-docdb
 
 4. kubectl create ns dailylog  
-   kubectl apply -f backend.yaml  
+   kubectl apply -f backend.yaml       **#### DB 접속 URI 수정 후, apply 진행**  
    kubectl apply -f frontend.yaml
 
 5. eksctl utils associate-iam-oidc-provider --cluster ControlPlane --approve --region ap-northeast-2
