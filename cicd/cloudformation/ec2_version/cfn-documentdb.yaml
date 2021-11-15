@@ -1,0 +1,178 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  AWS CloudFormation Template cfn-documentdb: Create a highly available,
+  Amazon DocumentDB instance for the backend data store.
+
+######################
+# Resource Config Step
+######################
+# Security Group
+# Amazon DocDB
+
+######################
+# Parameters section
+######################
+Parameters:
+  VpcId:
+    Type: 'AWS::EC2::VPC::Id'
+    Description: VpcId of your existing Virtual Private Cloud (VPC)
+    ConstraintDescription: must be the VPC Id of an existing Virtual Private Cloud.
+
+  PrivateSubnets:
+    Type: 'List<AWS::EC2::Subnet::Id>'
+    Description: The list of SubnetIds in your Virtual Private Cloud (VPC)
+    ConstraintDescription: >-
+      must be a list of at least two existing subnets associated with at least
+      two different availability zones. They should be residing in the selected
+      Virtual Private Cloud.
+
+  AppServerSecurityGroup:
+    Description: Select AppSever Security Group
+    Type: 'AWS::EC2::SecurityGroup::Id'
+
+  DBClusterName: 
+    Default: "DailyLogCluster"
+    Description : "Cluster name"
+    Type: "String"
+    MinLength: "1"
+    MaxLength: "64"
+    AllowedPattern : "[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*"
+    ConstraintDescription : "Must begin with a letter and contain only alphanumeric characters."
+
+  DBInstanceName: 
+    Default: "DailyLogInstance"
+    Description : "Instance name"
+    Type: "String"
+    MinLength: "1"
+    MaxLength: "64"
+    AllowedPattern : "[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*"
+    ConstraintDescription : "Must begin with a letter and contain only alphanumeric characters."
+
+  DBInstance2Name: 
+    Default: "DailyLogInstance2"
+    Description : "Instance name"
+    Type: "String"
+    MinLength: "1"
+    MaxLength: "64"
+    AllowedPattern : "[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*"
+    ConstraintDescription : "Must begin with a letter and contain only alphanumeric characters."
+
+  MasterUsername:
+    NoEcho: "true"
+    Description : "The database admin account username"
+    Type: "String"
+    MinLength: "1"
+    MaxLength: "16"
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ConstraintDescription : "Must begin with a letter and contain only alphanumeric characters."
+
+  MasterUserPassword:
+    NoEcho: "true"
+    Description : "The database admin account password"
+    Type: "String"
+    MinLength: "1"
+    MaxLength: "41"
+    AllowedPattern : "^(?=.*[a-zA-z])(?=.*[0-9])(?=.*[`~!@$!%*#^?&\\(\\)\\-_=+])(?!.*[^a-zA-z0-9`~!@$!%*#^?&\\(\\)\\-_=+]).{8,16}$"
+    ConstraintDescription : "Must begin with a letter and contain only alphanumeric characters."
+
+  DBInstanceClass:
+    Description : "Instance class. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region"
+    Type: "String"
+    Default: db.t3.medium
+    AllowedValues:
+      - db.t3.medium
+      - db.r5.large
+      - db.r5.xlarge
+      - db.r5.2xlarge
+      - db.r5.4xlarge
+      - db.r5.12xlarge
+      - db.r5.24xlarge                             
+    ConstraintDescription : "Instance type must be of the ones supported for the region. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region" 
+
+######################
+# Resources section
+######################
+Resources:
+  # Security Grouop
+  DocDBSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: private database for access
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '27017'
+          ToPort: '27017'
+          SourceSecurityGroupId: !Ref AppServerSecurityGroup
+      VpcId: !Ref VpcId
+
+  ### Amazon DocDB
+  # DB Subnet Group
+  DBSubnetGroup:
+    Type: 'AWS::DocDB::DBSubnetGroup'
+    Properties:
+      DBSubnetGroupDescription: Database Subnet Group
+      SubnetIds: !Ref PrivateSubnets
+
+  # DB Instance
+  DBCluster:
+    Type: "AWS::DocDB::DBCluster"
+    DeletionPolicy: Delete
+    Properties:
+      DBClusterIdentifier: !Ref DBClusterName
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      MasterUsername: !Ref MasterUsername
+      MasterUserPassword: !Ref MasterUserPassword
+      EngineVersion: 4.0.0
+      VpcSecurityGroupIds:
+        - !Ref DocDBSecurityGroup
+
+  DBInstance:
+    Type: "AWS::DocDB::DBInstance"
+    Properties:
+      DBClusterIdentifier: !Ref DBCluster
+      DBInstanceIdentifier: !Ref DBInstanceName
+      DBInstanceClass: !Ref DBInstanceClass
+    DependsOn: DBCluster
+
+  DBInstance2:
+    Type: "AWS::DocDB::DBInstance"
+    Properties:
+      DBClusterIdentifier: !Ref DBCluster
+      DBInstanceIdentifier: !Ref DBInstance2Name
+      DBInstanceClass: !Ref DBInstanceClass
+    DependsOn: DBCluster
+
+  ### Parameter Store
+  MasterUsernameParameterStore:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: MasterUsername
+      Type: "String"
+      Value: !Ref MasterUsername
+
+  MasterUserPasswordParameterStore:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: MasterUserPassword
+      Type: "String"
+      Value: !Ref MasterUserPassword
+
+######################
+# Outputs section
+######################
+Outputs:
+  ClusterId:
+    Value: !Ref DBCluster
+  ClusterEndpoint:
+    Value: !GetAtt DBCluster.Endpoint
+    Export:
+      Name: !Sub '${AWS::StackName}-DBClusterEndpoint'
+  ClusterPort:
+    Value: !GetAtt DBCluster.Port
+    Export:
+      Name: !Sub '${AWS::StackName}-DBClusterPort'
+  EngineVersion:
+    Value: "4.0.0"
+  SubnetGroup:
+    Description: The db subnet group name 
+    Value: !Ref DBSubnetGroup

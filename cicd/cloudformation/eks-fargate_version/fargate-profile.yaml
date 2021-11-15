@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Fargate Profile
+
+Parameters:
+  PrivateSubnets:
+    Description: The list of SubnetIds in your Virtual Private Cloud (VPC)
+    Type: 'List<AWS::EC2::Subnet::Id>'
+
+Resources:
+  FargateProfile:
+    Type: AWS::EKS::FargateProfile
+    Properties:
+      ClusterName: 'ControlPlane'
+      FargateProfileName: 'FargateProfile'
+      PodExecutionRoleArn: arn:aws:iam::710836223938:role/AmazonEKSFargatePodExecutionRole
+      Selectors:
+        - Namespace: default
+        - Namespace: kube-system
+        - Namespace: dailylog
+          Labels:
+            - Key: tier
+              Value: frontend
+        - Namespace: dailylog
+          Labels:
+            - Key: tier
+              Value: backend
+      Subnets: !Ref PrivateSubnets

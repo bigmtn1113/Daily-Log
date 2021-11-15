@@ -1,0 +1,172 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  This template provisions Application LoadBalancers in a VPC Subnet provisioned in a different stack.
+
+######################
+# Parameters section
+######################
+Parameters:
+  NetworkStackName:
+    Description: >-
+      Name of an active CloudFormation stack that contains the networking
+      resources, such as the VPC and subnet that will be used in this stack.
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
+    Default: cfn-vpc
+
+  SGStackName:
+    Description: >-
+      Name of an active CloudFormation stack that contains the networking
+      resources, such as the SecurityGroup that will be used in this stack.
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
+    Default: cfn-sg
+
+  PublicSubnets:
+    Description: The list of SubnetIds in your Virtual Private Cloud (VPC)
+    Type: 'List<AWS::EC2::Subnet::Id>'
+
+  PrivateSubnets:
+    Description: The list of SubnetIds in your Virtual Private Cloud (VPC)
+    Type: 'List<AWS::EC2::Subnet::Id>'
+
+
+### Resource config
+Resources: 
+# External Application LoadBalancer config
+  extALB:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Name: ExternalALB
+      Type: application
+      SecurityGroups:
+        - Fn::ImportValue:
+            !Sub "${SGStackName}-extALBSecurityGroupID"
+      Subnets:
+        Ref: PublicSubnets
+        
+  extALBListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn:
+            !Ref extALBTargetGroup
+      LoadBalancerArn:
+        !Ref extALB
+      Port: '80'
+      Protocol: HTTP
+
+  extALBTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      Name: feWeb
+      HealthCheckIntervalSeconds: 10
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Port: 8000
+      Protocol: HTTP
+      UnhealthyThresholdCount: 5
+      VpcId:
+        Fn::ImportValue:
+          !Sub ${NetworkStackName}-VPCID
+      TargetGroupAttributes:
+        - Key: stickiness.enabled
+          Value: 'true'
+        - Key: stickiness.type
+          Value: lb_cookie
+        - Key: stickiness.lb_cookie.duration_seconds
+          Value: '30'
+
+# Internal Application LoadBalancer config
+  intALB:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Name: InternalALB
+      Scheme: internal
+      Type: application
+      SecurityGroups:
+        - Fn::ImportValue:
+            !Sub "${SGStackName}-intALBSecurityGroupID"
+      Subnets:
+        Ref: PrivateSubnets
+
+  intALBListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn:
+            !Ref intALBTargetGroup
+      LoadBalancerArn:
+        !Ref intALB
+      Port: '80'
+      Protocol: HTTP
+
+  intALBTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      Name: beApp
+      HealthCheckIntervalSeconds: 10
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: 404
+      Port: 8000
+      Protocol: HTTP
+      UnhealthyThresholdCount: 5
+      VpcId:
+        Fn::ImportValue:
+          !Sub ${NetworkStackName}-VPCID
+      TargetGroupAttributes:
+        - Key: stickiness.enabled
+          Value: 'true'
+        - Key: stickiness.type
+          Value: lb_cookie
+        - Key: stickiness.lb_cookie.duration_seconds
+          Value: '30'
+
+
+######################
+# Outputs section
+######################
+Outputs:
+  intURL:
+    Description: URL of the Back-End-Website
+    Value:
+      'Fn::Join':
+        - ''
+        - - 'http://'
+          - 'Fn::GetAtt':
+              - intALB
+              - DNSName
+    Export:
+      Name: !Sub '${AWS::StackName}-intURL'
+
+  extURL:
+    Description: URL of the Front-End-Website
+    Value:
+      'Fn::Join':
+        - ''
+        - - 'http://'
+          - 'Fn::GetAtt':
+              - extALB
+              - DNSName
+    Export:
+      Name: !Sub '${AWS::StackName}-extURL'
+
+  extALBTargetGroup:
+    Description: The external ALB Target Group ARN to use for Auto Scaling
+    Value: !Ref extALBTargetGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-extALBTargetGroupARN'
+
+  intALBTargetGroup:
+    Description: The internal ALB Target Group ARN to use for Auto Scaling
+    Value: !Ref intALBTargetGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-intALBTargetGroupARN'

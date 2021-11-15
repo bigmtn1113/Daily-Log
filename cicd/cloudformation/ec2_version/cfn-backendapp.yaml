@@ -1,0 +1,343 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  This template provisions an Auto Scaling Group in a VPC Subnet provisioned in a different stack.
+
+######################
+# Resource Config Step
+######################
+
+#   LaunchConfig
+#   AutoScaling Group
+#   Security Group
+
+######################
+# Parameters section
+######################
+
+Parameters:
+  NetworkStackName:
+    Description: >-
+      Name of an active CloudFormation stack that contains the networking
+      resources, such as the VPC and subnet that will be used in this stack.
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
+    Default: cfn-vpc
+
+  SGStackName:
+    Description: >-
+      Name of an active CloudFormation stack that contains the networking
+      resources, such as the SecurityGroup that will be used in this stack.
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
+    Default: cfn-sg
+
+  ALBStackName:
+    Description: >-
+      Name of an active CloudFormation stack that contains the networking
+      resources, such as the Application Load Balancer that will be used in this stack.
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
+    Default: cfn-alb
+
+  DocDBStackName:
+    Description: >-
+      Name of an active CloudFormation stack that contains the networking
+      resources, such as the DocumentDB that will be used in this stack.
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
+    Default: cfn-documentdb
+
+  DeployAndSSMMgmtRoleName:
+    Description: Name of IAM Role
+    Type: 'String'
+    Default: AmazonEC2-S3-CodeDeployAndSSM
+
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+
+  PrivateSubnets:
+    Description: The list of SubnetIds in your Virtual Private Cloud (VPC)
+    Type: 'List<AWS::EC2::Subnet::Id>'
+
+  AppServerCapacity:
+    Default: '2'
+    Description: The initial number of AppServer instances
+    Type: Number
+    MinValue: '2'
+    MaxValue: '5'
+    ConstraintDescription: must be between 2 and 5 EC2 instances.
+
+  CPUPolicyTargetValue:
+    Description: The target value for the metric
+    Type: String
+    Default: 60
+
+  InstanceType:
+    Description: WebServer EC2 instance type
+    Type: String
+    Default: t3.small
+    AllowedValues:
+      - t3.nano
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+    ConstraintDescription: must be a valid EC2 instance type.
+
+  DBAddrQuerystring :
+    Description: >-
+      Name of an active CloudFormation stack that contains the networking
+      resources, such as the DB Address Querystring that will be used in this stack.
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern : ".*"
+    Default: \"?ssl=true&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false\"
+
+  MasterUsernameParameterStore:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: "Amazon DocumentDB Master Username"
+
+  MasterUserPasswordParameterStore:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: "Amazon DocumentDB Master User Password"
+
+######################
+# Mapping section
+######################
+
+Mappings:
+  AWSInstanceType2Arch:
+    t3.nano:
+      Arch: HVM64
+    t3.micro:
+      Arch: HVM64
+    t3.small:
+      Arch: HVM64
+    t3.medium:
+      Arch: HVM64
+    t3.large:
+      Arch: HVM64
+    m4.large:
+      Arch: HVM64
+    m4.xlarge:
+      Arch: HVM64
+    m4.2xlarge:
+      Arch: HVM64
+    c4.large:
+      Arch: HVM64
+    c4.xlarge:
+      Arch: HVM64
+    c4.2xlarge:
+      Arch: HVM64
+  AWSInstanceType2NATArch:
+    t3.nano:
+      Arch: NATHVM64
+    t3.micro:
+      Arch: NATHVM64
+    t3.small:
+      Arch: NATHVM64
+    t3.medium:
+      Arch: NATHVM64
+    t3.large:
+      Arch: NATHVM64
+    m4.large:
+      Arch: NATHVM64
+    m4.xlarge:
+      Arch: NATHVM64
+    m4.2xlarge:
+      Arch: NATHVM64
+    c4.large:
+      Arch: NATHVM64
+    c4.xlarge:
+      Arch: NATHVM64
+    c4.2xlarge:
+      Arch: NATHVM64
+  AWSRegionArch2AMI:
+    af-south-1:
+      HVM64: ami-064cc455f8a1ef504
+      HVMG2: NOT_SUPPORTED
+    ap-east-1:
+      HVM64: ami-f85b1989
+      HVMG2: NOT_SUPPORTED
+    ap-northeast-1:
+      HVM64: ami-0b2c2a754d5b4da22
+      HVMG2: ami-09d0e0e099ecabba2
+    ap-northeast-2:
+      HVM64: ami-03c3c2b06dd8696c8
+      HVMG2: NOT_SUPPORTED
+    ap-northeast-3:
+      HVM64: ami-01344f6f63a4decc1
+      HVMG2: NOT_SUPPORTED
+    ap-south-1:
+      HVM64: ami-03cfb5e1fb4fac428
+      HVMG2: ami-0244c1d42815af84a
+    ap-southeast-1:
+      HVM64: ami-0ba35dc9caf73d1c7
+      HVMG2: ami-0e46ce0d6a87dc979
+    ap-southeast-2:
+      HVM64: ami-0ae99b503e8694028
+      HVMG2: ami-0c0ab057a101d8ff2
+    ca-central-1:
+      HVM64: ami-0803e21a2ec22f953
+      HVMG2: NOT_SUPPORTED
+    cn-north-1:
+      HVM64: ami-07a3f215cc90c889c
+      HVMG2: NOT_SUPPORTED
+    cn-northwest-1:
+      HVM64: ami-0a3b3b10f714a0ff4
+      HVMG2: NOT_SUPPORTED
+    eu-central-1:
+      HVM64: ami-0474863011a7d1541
+      HVMG2: ami-0aa1822e3eb913a11
+    eu-north-1:
+      HVM64: ami-0de4b8910494dba0f
+      HVMG2: ami-32d55b4c
+    eu-south-1:
+      HVM64: ami-08427144fe9ebdef6
+      HVMG2: NOT_SUPPORTED
+    eu-west-1:
+      HVM64: ami-015232c01a82b847b
+      HVMG2: ami-0d5299b1c6112c3c7
+    eu-west-2:
+      HVM64: ami-0765d48d7e15beb93
+      HVMG2: NOT_SUPPORTED
+    eu-west-3:
+      HVM64: ami-0caf07637eda19d9c
+      HVMG2: NOT_SUPPORTED
+    me-south-1:
+      HVM64: ami-0744743d80915b497
+      HVMG2: NOT_SUPPORTED
+    sa-east-1:
+      HVM64: ami-0a52e8a6018e92bb0
+      HVMG2: NOT_SUPPORTED
+    us-east-1:
+      HVM64: ami-032930428bf1abbff
+      HVMG2: ami-0aeb704d503081ea6
+    us-east-2:
+      HVM64: ami-027cab9a7bf0155df
+      HVMG2: NOT_SUPPORTED
+    us-west-1:
+      HVM64: ami-088c153f74339f34c
+      HVMG2: ami-0a7fc72dc0e51aa77
+    us-west-2:
+      HVM64: ami-01fee56b22f308154
+      HVMG2: ami-0fe84a5b4563d8f27
+
+######################
+# Resources section
+######################
+
+Resources:
+# Auto Scaling Group Configuration
+  AppServerGroup:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    Properties:
+      VPCZoneIdentifier:
+        !Ref PrivateSubnets
+      LaunchConfigurationName:
+        !Ref LaunchConfig
+      MinSize: '2'
+      MaxSize: '5'
+      DesiredCapacity:
+        !Ref AppServerCapacity
+      TargetGroupARNs:
+        - Fn::ImportValue:
+            !Sub "${ALBStackName}-intALBTargetGroupARN"
+      Tags:
+        - Key: 'Name'
+          Value: 'beApp'
+          PropagateAtLaunch: 'true'
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+        Count:
+          !Ref AppServerCapacity
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: '1'
+        MaxBatchSize: '1'
+        PauseTime: PT15M
+        WaitOnResourceSignals: 'true'
+
+  CPUPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AppServerGroup
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: !Ref CPUPolicyTargetValue
+
+# LaunchConfig Session
+  LaunchConfig:
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
+    Properties:
+      ImageId:
+        'Fn::FindInMap':
+          - AWSRegionArch2AMI
+          - Ref: 'AWS::Region'
+          - 'Fn::FindInMap':
+              - AWSInstanceType2Arch
+              - Ref: InstanceType
+              - Arch
+      InstanceType:
+        Ref: InstanceType
+      IamInstanceProfile:
+        Ref: DeployAndSSMMgmtRoleName
+      SecurityGroups:
+        - Fn::ImportValue:
+            !Sub "${SGStackName}-AppServerSecurityGroupID"
+      KeyName:
+        Ref: KeyName
+      UserData:
+        Fn::Base64: !Sub
+        - |
+          #!/bin/bash
+          echo export PORT=8000 >> /etc/profile
+          echo export DAILYLOG_DB_ADDR=${DBADDR} >> /etc/profile
+          echo export DAILYLOG_DB_ADDR_QUERYSTRING="${DBADDRQUERYSTRING}" >> /etc/profile
+          source /etc/profile
+          cd /home/ec2-user/back/
+          /usr/bin/pm2 start ecosystem.config.js
+          sudo yum install -y ruby
+          cd ..
+          mkdir build
+          wget https://aws-codedeploy-ap-northeast-2.s3.amazonaws.com/latest/install
+          chmod +x ./install
+          sudo ./install auto
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AppServerGroup --region ${AWS::Region}
+        - DBADDR:
+            Fn::Join:
+              - ''
+              - - !Ref MasterUsernameParameterStore
+                - ':'
+                - !Ref MasterUserPasswordParameterStore
+                - '@'
+                - Fn::ImportValue:
+                    !Sub "${DocDBStackName}-DBClusterEndpoint"
+                - ':'
+                - Fn::ImportValue:
+                    !Sub "${DocDBStackName}-DBClusterPort"
+          DBADDRQUERYSTRING: !Ref DBAddrQuerystring
+
+######################
+# Outputs section
+######################
